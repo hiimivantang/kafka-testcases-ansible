@@ -1,0 +1,28 @@
+---
+- name: Get metrics
+  hosts: all
+  vars:
+    process_name: confluent-server.service
+    rest_proxy_port: 8090
+    # may not need ldap user/password
+    ldap_user: ivan
+    ldap_password: password
+    topics: 
+    - testp1r3
+    command_config_path: /var/ssl/private/command.config
+    test_id: default
+    output_directory: ./metrics
+    install_jq: true
+  tasks: 
+    - name: Install jq
+      yum:
+        name: jq
+        state: present
+      become: true
+      when: install_jq
+    
+    - name: Get cluster metrics
+      vars: 
+        topic: "{{item}}"
+      include_tasks: tasks/get_metrics.yml
+      with_items: "{{topics}}"

@@ -1,0 +1,8 @@
+- name: Stopping clients
+  hosts: client
+  vars:
+    producer_jolokia_port: 7772
+    consumer_jolokia_port: 7773
+  tasks:
+    - name: get pid for producer
+      include_tasks: tasks/search_and_stop_clients.yml

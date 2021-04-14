@@ -1,0 +1,17 @@
+---
+- name: Get clients metrics
+  hosts: client
+  vars:
+    producer_client_id: globe_producer
+    producer_jolokia_port: 7772
+    consumer_client_id: globe_consumer
+    consumer_jolokia_port: 7773
+    consumer_group: consumer1
+    topic: testp1r3
+    test_id: default
+    output_directory: ./metrics
+    producer_output: /home/{{lookup('env','USER')}}/producer.out
+    consumer_output: /home/{{lookup('env','USER')}}/consumer.out
+  tasks: 
+    - name: Get metrics before running test case
+      include_tasks: tasks/get_client_metrics.yml

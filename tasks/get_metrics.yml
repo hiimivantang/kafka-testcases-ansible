@@ -4,7 +4,7 @@
 #  register: running_process
 
 - name: Get Cluster ID
-  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters | jq '.data[0].cluster_id'"
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters | jq -r '.data[0].cluster_id'"
   register: cluster_id
 
 - name: Print cluster id 
@@ -12,7 +12,7 @@
     msg: '{{cluster_id.stdout}}'
 
 - name: Get replicas count
-  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data | length'"
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq -r '.data | length'"
   #loop: "{{topics}}"
   #loop_control:
   #  loop_var: "topic"
@@ -20,7 +20,7 @@
 
 
 - name: Get ISR count
-  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[] | select(.is_in_sync==true) | .broker_id' | wc -l"
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq -r '.data[] | select(.is_in_sync==true) | .broker_id' | wc -l"
   #loop: "{{topics}}"
   #loop_control:
   #  loop_var: "topic"
@@ -28,36 +28,36 @@
 
 
 - name: Get current leader
-  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[] | select(.is_leader==true) | .broker_id'"
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq -r '.data[] | select(.is_leader==true) | .broker_id'"
   #loop: "{{topics}}"
   #loop_control:
   #  loop_var: "topic"
   register: current_leader
 
 - name: Get preferred leader
-  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[0].broker_id'"
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq -r '.data[0].broker_id'"
   #loop: "{{topics}}"
   #loop_control:
   #  loop_var: "topic"
   register: preferrred_leader
 
 - name: Get out-of-sync replicas count
-  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[] | select(.is_in_sync==false) | .broker_id' | wc -l"
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq -r '.data[] | select(.is_in_sync==false) | .broker_id' | wc -l"
   #loop: "{{topics}}"
   #loop_control:
   #  loop_var: "topic"
   register: outofsync_replica_count
 
 - name: Get number of brokers online
-  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/brokers | jq '.data | length'"
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/brokers | jq -r '.data | length'"
   register: brokers_online
 
 - name: Get offline partitions
-  shell: "curl -k https://{{inventory_hostname}}:7771/jolokia/read/kafka.controller:type=KafkaController,name=OfflinePartitionsCount | jq '.value.Value'"
+  shell: "curl -k https://{{inventory_hostname}}:7771/jolokia/read/kafka.controller:type=KafkaController,name=OfflinePartitionsCount | jq -r '.value.Value'"
   register: broker_offline_partitions
 
 - name: Get LEO
-  shell: "curl -k https://{{inventory_hostname}}:7771/jolokia/read/kafka.log:type=Log,name=LogEndOffset,topic={{topic}},partition=0 | jq '.value.Value'"
+  shell: "curl -k https://{{inventory_hostname}}:7771/jolokia/read/kafka.log:type=Log,name=LogEndOffset,topic={{topic}},partition=0 | jq -r '.value.Value'"
   #loop: "{{topics}}"
   #loop_control:
   #  loop_var: "topic"

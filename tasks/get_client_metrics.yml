@@ -1,16 +1,15 @@
 ---
 
-- name: Wait until the string "completed" is in the file /tmp/foo before continuing
+- name: Wait until producer-perf-test is done 
   wait_for:
     path: "{{producer_output}}"
-    search_regex: ^<<COMPLETED>>
+    search_regex: ^producer-topic-metrics:record-send-total
 
 - name: Setting required facts for upcoming tasks
   set_fact: 
     mbean_global_request: "kafka.producer:type=producer-metrics,client-id={{producer_client_id}}"
     mbean_global_fetch: "kafka.consumer:type=consumer-fetch-manager-metrics,client-id={{consumer_client_id}}"
     client_metrics_filepath: "{{output_directory}}/{{test_id}}-{{topic}}_client-metrics_{{ansible_date_time.iso8601}}.log"
-    client_connections_filepath: "{{connections_directory}}/{{test_id}}.log"
 
 - name: Get producer record-error-total
   vars:
@@ -89,32 +88,3 @@
     dest: "metrics/{{test_id}}-{{topic}}_consumed-data.csv"
     flat: true
     fail_on_missing: false
-
-
-- name: Check that the client connections log exists
-  local_action:
-    module: stat
-    path: "{{client_connections_filepath}}"
-  register: stat_result
-
-
-- name: Create the file, if it doesnt exist already
-  local_action:
-    module: file
-    path: "{{client_connections_filepath}}"
-    state: touch
-  when: not stat_result.stat.exists
-
-- name: get pid for consumer
-  shell: "/usr/sbin/ss -tp state listening sport = :{{consumer_jolokia_port}} | grep -oP 'pid=\\K[\\d]+'"
-  register: consumer_pid
-  ignore_errors: true
-
-- name: Get outgoing connections
-  shell: "/usr/sbin/ss -nputw | grep {{consumer_pid.stdout}}"
-  register: outgoing_connections
-
-- name: Append outgoing connections to {{client_connections_filepath}}
-  vars:
-    key_name: "{{item.key}}"
-  local_action: lineinfile path="{{client_connections_filepath}}" line="{{outgoing_connections.stdout}}"
