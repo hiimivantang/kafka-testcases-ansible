@@ -9,7 +9,37 @@ This repository contains the Ansible playbooks which you can use for:
 
 ## Requirements
 1. Ansible installed on control node
-2. hosts.yml
+2. Specify all the brokers in hosts.yml. E.g.:
+```yaml
+[node-1]
+ip-10-0-0-218.ap-southeast-1.compute.internal
+
+[node-2]
+ip-10-0-0-199.ap-southeast-1.compute.internal
+
+[node-3]
+ip-10-0-0-221.ap-southeast-1.compute.internal
+
+[node-4]
+ip-10-0-0-198.ap-southeast-1.compute.internal
+
+[client]
+ip-10-0-0-232.ap-southeast-1.compute.internal
+
+[broker-group-1:children]
+node-1
+node-2
+
+[broker-group-2:children]
+node-3
+node-4
+
+[dc-1:children]
+broker-group-1
+
+[dc-2:children]
+broker-group-2
+```
 
 
 ## How does it work?
