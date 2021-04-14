@@ -1,0 +1,21 @@
+---
+- name: Get Process ID for {{process_name}}
+  shell: "systemctl show {{process_name}} --property=MainPID  | sed -e 's#.*=\\(\\)#\\1#'"
+  register: running_process
+
+- name: Check if {{process_name}} is already stopped
+  fail: msg=">=Node already stopped"
+  when: ppid == "0" 
+  loop: "{{running_process.stdout_lines}}"
+  loop_control:
+    loop_var: "ppid"
+  ignore_errors: true
+
+- name: Stopping {{process_name}}
+  include_tasks: stop_pid.yml
+  vars:
+    ppid: "{{ ppid }}"
+  loop: "{{running_process.stdout_lines}}"
+  loop_control:
+    loop_var: "ppid"
+  ignore_errors: true

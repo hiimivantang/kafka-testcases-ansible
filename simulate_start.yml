@@ -1,0 +1,24 @@
+---
+- name: Starting Nodes
+  hosts: all
+  vars: 
+    ansible_become: true
+    #process_name: confluent-server.service
+    processes: 
+    - confluent-server
+    - confluent-zookeeper
+    kafka_broker_jolokia_ssl_enabled: true
+    kafka_broker_jolokia_port: 7771
+
+  tasks: 
+    - name: Starting Nodes
+      vars:
+        process_name: "{{item}}"
+      include_tasks: tasks/start_nodes.yml
+      with_items: "{{processes}}"
+
+    - name: Health checks
+      vars:
+        process_name: "{{item}}"
+      include_tasks: tasks/health_check.yml
+      with_items: "{{processes}}"

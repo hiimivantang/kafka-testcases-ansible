@@ -1,0 +1,33 @@
+---
+- name: get pid for producer
+  shell: "/usr/sbin/ss -tp state listening sport = :{{producer_jolokia_port}} | grep -oP 'pid=\\K[\\d]+'"
+  register: producer_pid
+  ignore_errors: true
+
+- name: stopping producer
+  include_tasks: tasks/graceful_stop_pid.yml
+  vars:
+    pid: "{{producer_pid.stdout}}"
+  when: producer_pid.stdout!=''
+
+- name: Waiting for producer to be stopped 
+  include_tasks: tasks/wait_pid.yml
+  vars:
+    pid: "{{producer_pid.stdout}}"
+
+- name: get pid for consumer
+  shell: "/usr/sbin/ss -tp state listening sport = :{{consumer_jolokia_port}} | grep -oP 'pid=\\K[\\d]+'"
+  register: consumer_pid
+  ignore_errors: true
+
+- name: stopping consumer
+  include_tasks: tasks/graceful_stop_pid.yml
+  vars:
+    pid: "{{consumer_pid.stdout}}"
+  when: consumer_pid.stdout!='' 
+
+- name: Waiting for consumer to be stopped 
+  include_tasks: tasks/wait_pid.yml
+  vars:
+    pid: "{{consumer_pid.stdout}}"
+

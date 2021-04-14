@@ -1,0 +1,16 @@
+---
+- name: Get Process IDs
+  shell: "systemctl show {{process_name}} --property=MainPID  | sed -e 's#.*=\\(\\)#\\1#'"
+  register: running_process
+
+- name: Check if any node is already started
+  fail: msg="Node already started"
+  when: pid != "0" 
+  loop: "{{running_process.stdout_lines}}"
+  loop_control:
+    loop_var: "pid"
+  ignore_errors: true
+
+- name: Starting nodes asynchronously
+  include_tasks: start_node.yml
+  ignore_errors: true

@@ -1,0 +1,7 @@
+---
+- name: Fetch File for Investigation
+  fetch:
+    src: "{{file_to_fetch}}"
+    dest: "fetched_files/{{inventory_hostname}}-{{file_to_fetch|basename}}"
+    flat: true
+    fail_on_missing: false

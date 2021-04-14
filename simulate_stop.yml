@@ -1,0 +1,14 @@
+---
+- name: Stopping Nodes
+  hosts: all
+  vars: 
+    #process_name: confluent-server.service
+    processes:
+    - confluent-server.service
+    - confluent-zookeeper.service
+  tasks: 
+    - name: Get Process IDs
+      vars:
+        process_name: "{{item}}"
+      include_tasks: tasks/stop_nodes.yml
+      with_items: "{{processes}}"

@@ -1,0 +1,99 @@
+#---
+#- name: Get list of brokers alive
+#  shell: "systemctl show {{process_name}} --property=MainPID  | sed -e 's#.*=\\(\\)#\\1#'"
+#  register: running_process
+
+- name: Get Cluster ID
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters | jq '.data[0].cluster_id'"
+  register: cluster_id
+
+- name: Print cluster id 
+  debug:
+    msg: '{{cluster_id.stdout}}'
+
+- name: Get replicas count
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data | length'"
+  #loop: "{{topics}}"
+  #loop_control:
+  #  loop_var: "topic"
+  register: replicas_count
+
+
+- name: Get ISR count
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[] | select(.is_in_sync==true) | .broker_id' | wc -l"
+  #loop: "{{topics}}"
+  #loop_control:
+  #  loop_var: "topic"
+  register: isr_count
+
+
+- name: Get current leader
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[] | select(.is_leader==true) | .broker_id'"
+  #loop: "{{topics}}"
+  #loop_control:
+  #  loop_var: "topic"
+  register: current_leader
+
+- name: Get preferred leader
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[0].broker_id'"
+  #loop: "{{topics}}"
+  #loop_control:
+  #  loop_var: "topic"
+  register: preferrred_leader
+
+- name: Get out-of-sync replicas count
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/topics/{{topic}}/partitions/0/replicas | jq '.data[] | select(.is_in_sync==false) | .broker_id' | wc -l"
+  #loop: "{{topics}}"
+  #loop_control:
+  #  loop_var: "topic"
+  register: outofsync_replica_count
+
+- name: Get number of brokers online
+  shell: "curl -s -u {{ldap_user}}:{{ldap_password}} -k https://{{inventory_hostname}}:8090/kafka/v3/clusters/{{cluster_id.stdout}}/brokers | jq '.data | length'"
+  register: brokers_online
+
+- name: Get offline partitions
+  shell: "curl -k https://{{inventory_hostname}}:7771/jolokia/read/kafka.controller:type=KafkaController,name=OfflinePartitionsCount | jq '.value.Value'"
+  register: broker_offline_partitions
+
+- name: Get LEO
+  shell: "curl -k https://{{inventory_hostname}}:7771/jolokia/read/kafka.log:type=Log,name=LogEndOffset,topic={{topic}},partition=0 | jq '.value.Value'"
+  #loop: "{{topics}}"
+  #loop_control:
+  #  loop_var: "topic"
+  register: log_end_offset
+
+- name: Get current datetime
+  set_fact:
+    #current_datetime: "{{ansible_date_time.iso8601}}"
+    metrics_filepath: "{{output_directory}}/{{test_id}}-{{topic}}_metrics_{{ansible_date_time.iso8601}}.csv" 
+
+- name: Check that the metrics file exists
+  local_action:
+    module: stat
+    path: "{{metrics_filepath}}"
+  register: stat_result
+
+- name: Create the file, if it doesnt exist already
+  local_action:
+    module: file
+    path: "{{metrics_filepath}}"
+    state: touch
+  when: not stat_result.stat.exists
+
+- name: Add headers to existing file
+  local_action: lineinfile path="{{metrics_filepath}}" line="datetime,key,value"
+
+- name: Append metrics to existing file
+  vars:
+    key_name: "{{item.key}}"
+  local_action: lineinfile path="{{metrics_filepath}}" line="{{ansible_date_time.iso8601_micro}},{{key_name}},{{ item.value.stdout}}"
+  #debug:
+  #  msg: '{{item.value.results[0].stdout}}}'
+  loop:
+    - { key: "replicas_count", value: "{{replicas_count}}" }
+    - { key: "isr_count", value: "{{isr_count}}" }
+    - { key: "current_leader_id", value: "{{current_leader}}" }
+    - { key: "preferrred_leader_id", value: "{{preferrred_leader}}" }
+    - { key: "outofsync_replica_count", value: "{{outofsync_replica_count}}" }
+    - { key: "log_end_offset", value: "{{log_end_offset}}" }

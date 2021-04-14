@@ -1,0 +1,11 @@
+---
+- name: Get Process IDs
+  shell: "systemctl show {{process_name}} --property=MainPID  | sed -e 's#.*=\\(\\)#\\1#'"
+  register: running_process
+
+- name: Printing Process ID
+  debug: 
+    msg: "PROCESS ID IS {{pid}}"
+  loop: "{{running_process.stdout_lines}}"
+  loop_control:
+    loop_var: "pid"

@@ -1,0 +1,12 @@
+- name: DEBUGGING.....
+  debug:
+    msg: 'PPID is {{ppid}}'
+
+- name: Stop Node
+  command: "sudo kill -9 {{ppid}}"
+  ignore_errors: true
+  when: ppid!='0'
+
+#- name: Stop Node
+#  shell: "sudo kill -9 {{ppid}}"
+#  ignore_errors: true

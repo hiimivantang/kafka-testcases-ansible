@@ -1,0 +1,120 @@
+---
+
+- name: Wait until the string "completed" is in the file /tmp/foo before continuing
+  wait_for:
+    path: "{{producer_output}}"
+    search_regex: ^<<COMPLETED>>
+
+- name: Setting required facts for upcoming tasks
+  set_fact: 
+    mbean_global_request: "kafka.producer:type=producer-metrics,client-id={{producer_client_id}}"
+    mbean_global_fetch: "kafka.consumer:type=consumer-fetch-manager-metrics,client-id={{consumer_client_id}}"
+    client_metrics_filepath: "{{output_directory}}/{{test_id}}-{{topic}}_client-metrics_{{ansible_date_time.iso8601}}.log"
+    client_connections_filepath: "{{connections_directory}}/{{test_id}}.log"
+
+- name: Get producer record-error-total
+  vars:
+    mbean: "{{mbean_global_request}}"
+    attribute: "record-error-total"
+  shell: "curl -s -k http://{{inventory_hostname}}:{{producer_jolokia_port}}/jolokia/read/{{mbean}} | jq '.value.\"{{attribute}}\"'"
+  register: record_error_total
+
+- name: Get producer record-retry-total
+  vars:
+    mbean: "{{mbean_global_request}}"
+    attribute: "record-retry-total"
+  shell: "curl -s -k http://{{inventory_hostname}}:{{producer_jolokia_port}}/jolokia/read/{{mbean}} | jq '.value.\"{{attribute}}\"'"
+  register: record_retry_total
+
+- name: Get producer record-send-total
+  vars:
+    mbean: "{{mbean_global_request}}"
+    attribute: "record-send-total"
+  shell: "curl -s -k http://{{inventory_hostname}}:{{producer_jolokia_port}}/jolokia/read/{{mbean}} | jq '.value.\"{{attribute}}\"'"
+  register: record_send_total
+
+- name: Get producer record-error-total
+  vars:
+    mbean: "{{mbean_global_request}}"
+    attribute: "record-error-total"
+  shell: "curl -s -k http://{{inventory_hostname}}:{{producer_jolokia_port}}/jolokia/read/{{mbean}} | jq '.value.\"{{attribute}}\"'"
+  register: record_error_total
+
+- name: Get consumer records-consumed-total
+  vars:
+    mbean: "{{mbean_global_fetch}}"
+    attribute: "records-consumed-total"
+  shell: "curl -s -k http://{{inventory_hostname}}:{{consumer_jolokia_port}}/jolokia/read/{{mbean}} | jq '.value.\"{{attribute}}\"'"
+  register: records_consumed_total
+
+
+- name: Check that the metrics file exists
+  local_action:
+    module: stat
+    path: "{{client_metrics_filepath}}"
+  register: stat_result
+
+- name: Create the file, if it doesnt exist already
+  local_action:
+    module: file
+    path: "{{client_metrics_filepath}}"
+    state: touch
+  when: not stat_result.stat.exists
+
+- name: Add headers to existing file
+  local_action: lineinfile path="{{client_metrics_filepath}}" line="datetime,key,value"
+
+- name: Append metrics to existing file
+  vars:
+    key_name: "{{item.key}}"
+  local_action: lineinfile path="{{client_metrics_filepath}}" line="{{ansible_date_time.iso8601_micro}},{{key_name}},{{ item.value.stdout}}"
+  loop:
+    - { key: "record_error_total", value: "{{record_error_total}}" }
+    - { key: "record_retry_total", value: "{{record_retry_total}}" }
+    - { key: "record_send_total", value: "{{record_send_total}}" }
+    - { key: "records_consumed_total", value: "{{records_consumed_total}}" }
+
+- name: Delete non-data lines
+  replace:
+    path: "{{consumer_output}}"
+    regexp: '{{item}}'
+    replace: ''
+  loop:
+    - 'I>.*\n'
+    - '^Jolokia:.*\n'
+
+- name: Get consumed data
+  fetch: 
+    src: "{{consumer_output}}"
+    dest: "metrics/{{test_id}}-{{topic}}_consumed-data.csv"
+    flat: true
+    fail_on_missing: false
+
+
+- name: Check that the client connections log exists
+  local_action:
+    module: stat
+    path: "{{client_connections_filepath}}"
+  register: stat_result
+
+
+- name: Create the file, if it doesnt exist already
+  local_action:
+    module: file
+    path: "{{client_connections_filepath}}"
+    state: touch
+  when: not stat_result.stat.exists
+
+- name: get pid for consumer
+  shell: "/usr/sbin/ss -tp state listening sport = :{{consumer_jolokia_port}} | grep -oP 'pid=\\K[\\d]+'"
+  register: consumer_pid
+  ignore_errors: true
+
+- name: Get outgoing connections
+  shell: "/usr/sbin/ss -nputw | grep {{consumer_pid.stdout}}"
+  register: outgoing_connections
+
+- name: Append outgoing connections to {{client_connections_filepath}}
+  vars:
+    key_name: "{{item.key}}"
+  local_action: lineinfile path="{{client_connections_filepath}}" line="{{outgoing_connections.stdout}}"

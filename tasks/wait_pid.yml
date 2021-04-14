@@ -1,0 +1,5 @@
+- name: Wait until the process is finished and pid was destroyed
+  wait_for:
+    path: /proc/{{pid}}/status
+    state: absent
+  become: true
