@@ -9,7 +9,7 @@ This repository contains the Ansible playbooks which you can use for:
 
 ## Requirements
 1. Ansible installed on control node
-2. Specify all the brokers in hosts.yml. E.g.:
+2. Specify all the brokers and client hostnames in the hosts.yml. E.g.:
 ```yaml
 [node-1]
 ip-10-0-0-218.ap-southeast-1.compute.internal
@@ -43,13 +43,50 @@ broker-group-2
 
 
 ## How does it work?
+By making use of variables to group specific brokers together in the `host.yml` file, you will be able to simulate rack and/or DC failures based on those variables.
+
+For e.g.:
+```
+ansible-playbook simulate_stop.yml -i hosts.yml -l dc-1
+```
+
+
+
+## Usage example
+
+Treat the following Ansible playbooks as building blocks for testing your Kafka cluster:
+
+```
+.
+├── collect_clients_metrics.yml
+├── collect_metrics.yml
+├── simulate_start.yml
+├── simulate_stop.yml
+├── start_clients.yml
+├── stop_clients.yml
+```
+
+A sample script to simulate broker failure:
+```bash
+#!/bin/bash
+
+#Run playbook to start producer and clients
 
 
 
 
-## Usage
 
-
+```
 
 
 ## FAQ
+
+How does `simulate_stop.yml` playbook simulate broker failures?
+
+
+Why is there a custom producer in this repo?
+
+
+Why do you need an Ansible playbook just for starting a producer and consumer?
+
+
