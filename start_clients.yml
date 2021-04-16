@@ -23,7 +23,7 @@
     
     producer_jolokia_port: 7772
     producer_kafka_opts: "-Djdk.tls.ephemeralDHKeySize=2048 -javaagent:{{jolokia_file_path}}=port={{producer_jolokia_port}},host=0.0.0.0,protocol=http" 
-    custom_producer_path: /home/{{ lookup('env', 'USER')}}/globe-producer-java/bin/globe-producer-java
+    custom_producer_path: /home/{{ lookup('env', 'USER') }}/itang-producer-perf-test/bin/itang-producer-perf-test
     
     consumer_client_id: globe_consumer
     consumer_group: consumer1
@@ -50,12 +50,20 @@
       poll: 9
       tags: 'run_consumer'
 
+    - name: Copy custom kafka-producer-perf-test to client node
+      copy:
+        src: ./itang-producer-perf-test
+        dest: /home/{{ lookup('env', 'USER') }}
+        owner: "{{ lookup('env', 'USER') }}"
+        group: "{{ lookup('env', 'USER') }}"
+        mode: gou+x
+
     - name: Debug producer
       debug: 
-        msg: "export KAFKA_OPTS=\"{{producer_kafka_opts}}\"; {{custom_producer_path}} --producer.config {{command_config}} --record-size {{producer_record_size}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props bootstrap.servers={{bootstrap_servers}} client.id={{producer_client_id}} acks={{producer_acks}} compression.type={{producer_compression_type}} enable.idempotence={{enable_idempotence}} max.in.flight.requests.per.connection={{max_in_flight_requests_per_connection}} --print-metrics > {{producer_output}}&"
-      
+        msg: "export KAFKA_OPTS=\"{{producer_kafka_opts}}\"; {{custom_producer_path}} --producer.config {{command_config}} --record-size {{producer_record_size}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props bootstrap.servers={{bootstrap_servers}} client.id={{producer_client_id}} acks={{producer_acks}} compression.type={{producer_compression_type}} enable.idempotence={{enable_idempotence}} max.in.flight.requests.per.connection={{max_in_flight_requests_per_connection}} delivery.timeout.ms={{producer_delivery_timeout_ms}} --deterministic --print-metrics > {{producer_output}}&"      
+
     - name: Run producer
-      shell: "export KAFKA_OPTS=\"{{producer_kafka_opts}}\"; {{custom_producer_path}} --producer.config {{command_config}} --record-size {{producer_record_size}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props bootstrap.servers={{bootstrap_servers}} client.id={{producer_client_id}} acks={{producer_acks}} compression.type={{producer_compression_type}} enable.idempotence={{enable_idempotence}} max.in.flight.requests.per.connection={{max_in_flight_requests_per_connection}} delivery.timeout.ms={{producer_delivery_timeout_ms}} --print-metrics > {{producer_output}}&"
+      shell: "export KAFKA_OPTS=\"{{producer_kafka_opts}}\"; {{custom_producer_path}} --producer.config {{command_config}} --record-size {{producer_record_size}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props bootstrap.servers={{bootstrap_servers}} client.id={{producer_client_id}} acks={{producer_acks}} compression.type={{producer_compression_type}} enable.idempotence={{enable_idempotence}} max.in.flight.requests.per.connection={{max_in_flight_requests_per_connection}} delivery.timeout.ms={{producer_delivery_timeout_ms}} --deterministic --print-metrics > {{producer_output}}&"
       async: 10
       poll: 9
       tags: 'run_producer'
