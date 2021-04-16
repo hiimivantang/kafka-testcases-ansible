@@ -100,9 +100,12 @@ ansible-playbook collect_clients_metrics.yml -i hosts.yml
 
 It searches for `confluent-server`'s pid then sends a `SIGKILL`.
 
+
+
 Why is there a custom producer in this repo?
 
 Modification was made to the `kafka-producer-perf-test` codes to prevent producer from closing when it is done producing all so that JMX metrics can be collected. It also introduces a new argument `--deterministic` to allow deterministic producer benchmarking, i.e. reading the payload row by row as opposed to randomly.
+
 
 
 Why do you need an Ansible playbook just for starting a producer and consumer?
