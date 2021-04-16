@@ -11,7 +11,7 @@
     producer_output: /home/{{lookup('env','USER')}}/producer.out
     producer_throughput: 500
     producer_num_records: 100000
-    producer_client_id: globe_producer
+    producer_client_id: test_producer
     producer_acks: all
     producer_compression_type: lz4
     producer_delivery_timeout_ms: 1800000 #30 minutes
@@ -25,7 +25,7 @@
     producer_kafka_opts: "-Djdk.tls.ephemeralDHKeySize=2048 -javaagent:{{jolokia_file_path}}=port={{producer_jolokia_port}},host=0.0.0.0,protocol=http" 
     custom_producer_path: /home/{{ lookup('env', 'USER') }}/itang-producer-perf-test/bin/itang-producer-perf-test
     
-    consumer_client_id: globe_consumer
+    consumer_client_id: test_consumer
     consumer_group: consumer1
     consumer_output: /home/{{ lookup('env', 'USER') }}/consumer.out
     

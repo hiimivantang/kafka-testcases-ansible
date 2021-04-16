@@ -2,9 +2,9 @@
 - name: Get clients metrics
   hosts: client
   vars:
-    producer_client_id: globe_producer
+    producer_client_id: test_producer
     producer_jolokia_port: 7772
-    consumer_client_id: globe_consumer
+    consumer_client_id: test_consumer
     consumer_jolokia_port: 7773
     consumer_group: consumer1
     topic: testp1r3
