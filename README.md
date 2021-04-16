@@ -99,16 +99,16 @@ ansible-playbook collect_clients_metrics.yml -i hosts.yml
 *How does `simulate_stop.yml` playbook simulate broker failures?* 
 
 It searches for `confluent-server`'s pid then sends a `SIGKILL`.
-
+<br/>
 
 
 Why is there a custom producer in this repo?
 
 Modification was made to the `kafka-producer-perf-test` codes to prevent producer from closing when it is done producing all so that JMX metrics can be collected. It also introduces a new argument `--deterministic` to allow deterministic producer benchmarking, i.e. reading the payload row by row as opposed to randomly.
-
-
+<br/>
 
 Why do you need an Ansible playbook just for starting a producer and consumer?
 
 The playbook resets the consumer group offset to the latest, and kills any running test clients to ensure that each test starts with a clean slate.
 It also copies the custom producer required to your client node.
+<br/>
