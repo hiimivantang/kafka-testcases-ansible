@@ -7,22 +7,21 @@
     command_config: /home/{{lookup('env','USER')}}/generated_ssl_files/ssl_command.config
 
     kafka_binary_path: /home/{{lookup('env','USER')}}/confluent-6.0.0/bin
-    producer_record_size: 1000
     producer_output: /home/{{lookup('env','USER')}}/producer.out
+
     producer_throughput: 500
     producer_num_records: 100000
     producer_client_id: test_producer
     producer_acks: all
     producer_compression_type: lz4
-    producer_delivery_timeout_ms: 1800000 #30 minutes
-    
     enable_idempotence: 'true'
     max_in_flight_requests_per_connection: 5
+    producer_delivery_timeout_ms: 1800000 #30 minutes
+    record_size: 1000
+
+    producer_props: bootstrap.servers={{bootstrap_servers}} client.id={{producer_client_id}} acks={{producer_acks}} compression.type={{producer_compression_type}} enable.idempotence={{enable_idempotence}} max.in.flight.requests.per.connection={{max_in_flight_requests_per_connection}} delivery.timeout.ms={{producer_delivery_timeout_ms}}
     
-    jolokia_file_path: /home/{{lookup('env','USER')}}/jolokia.jar
-    
-    producer_jolokia_port: 7772
-    producer_kafka_opts: "-Djdk.tls.ephemeralDHKeySize=2048 -javaagent:{{jolokia_file_path}}=port={{producer_jolokia_port}},host=0.0.0.0,protocol=http" 
+    producer_jmx_port: 7772
     producer_test_data: /home/{{ lookup('env', 'USER') }}/test-data
     custom_producer_path: /home/{{ lookup('env', 'USER') }}/itang-producer-perf-test/bin/itang-producer-perf-test
     
@@ -30,8 +29,7 @@
     consumer_group: consumer1
     consumer_output: /home/{{ lookup('env', 'USER') }}/consumer.out
     
-    consumer_jolokia_port: 7773
-    consumer_kafka_opts: "-Djdk.tls.ephemeralDHKeySize=2048 -javaagent:{{jolokia_file_path}}=port={{consumer_jolokia_port}},host=0.0.0.0,protocol=http"
+    consumer_jmx_port: 7773
     consumer_client_rack: ""
     
   tasks: 
@@ -43,10 +41,10 @@
     
     - name: Debug consumer
       debug: 
-        msg: "export KAFKA_OPTS=\"{{consumer_kafka_opts}}\"; {{kafka_binary_path}}/kafka-run-class kafka.tools.ConsoleConsumer --consumer.config {{command_config}} --bootstrap-server {{bootstrap_servers}} --consumer-property client.id={{consumer_client_id}} client.rack={{consumer_client_rack}} --group {{consumer_group}} --topic {{topic}} > {{consumer_output}} &"
+        msg: "export JMX_PORT={{consumer_jmx_port}}; {{kafka_binary_path}}/kafka-run-class kafka.tools.ConsoleConsumer --consumer.config {{command_config}} --bootstrap-server {{bootstrap_servers}} --consumer-property client.id={{consumer_client_id}} client.rack={{consumer_client_rack}} --group {{consumer_group}} --topic {{topic}} > {{consumer_output}} &"
 
     - name: Run consumer
-      shell: "export KAFKA_OPTS=\"{{consumer_kafka_opts}}\"; {{kafka_binary_path}}/kafka-run-class kafka.tools.ConsoleConsumer --consumer.config {{command_config}} --bootstrap-server {{bootstrap_servers}} --consumer-property client.id={{consumer_client_id}} client.rack={{consumer_client_rack}} --group {{consumer_group}} --topic {{topic}} > {{consumer_output}} &"
+      shell: "export JMX_PORT={{consumer_jmx_port}}; {{kafka_binary_path}}/kafka-run-class kafka.tools.ConsoleConsumer --consumer.config {{command_config}} --bootstrap-server {{bootstrap_servers}} --consumer-property client.id={{consumer_client_id}} client.rack={{consumer_client_rack}} --group {{consumer_group}} --topic {{topic}} > {{consumer_output}} &"
       async: 10
       poll: 9
       tags: 'run_consumer'
@@ -59,19 +57,12 @@
         group: "{{ lookup('env', 'USER') }}"
         mode: gou+x
 
-    - name: Copy test data 
-      copy:
-        src: ./test-data
-        dest: /home/{{ lookup('env', 'USER') }}/test-data
-        owner: "{{ lookup('env', 'USER') }}"
-        group: "{{ lookup('env', 'USER') }}"
-
     - name: Debug producer
       debug: 
-        msg: "export KAFKA_OPTS=\"{{producer_kafka_opts}}\"; {{custom_producer_path}} --producer.config {{command_config}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props bootstrap.servers={{bootstrap_servers}} client.id={{producer_client_id}} acks={{producer_acks}} compression.type={{producer_compression_type}} enable.idempotence={{enable_idempotence}} max.in.flight.requests.per.connection={{max_in_flight_requests_per_connection}} delivery.timeout.ms={{producer_delivery_timeout_ms}} --deterministic --payload-file {{producer_test_data}} --print-metrics > {{producer_output}}&"      
+        msg: "export JMX_PORT={{producer_jmx_port}}; {{custom_producer_path}} --producer.config {{command_config}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props {{producer_props}} --record-size {{record_size}} --print-metrics > {{producer_output}}&"      
 
     - name: Run producer
-      shell: "export KAFKA_OPTS=\"{{producer_kafka_opts}}\"; {{custom_producer_path}} --producer.config {{command_config}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props bootstrap.servers={{bootstrap_servers}} client.id={{producer_client_id}} acks={{producer_acks}} compression.type={{producer_compression_type}} enable.idempotence={{enable_idempotence}} max.in.flight.requests.per.connection={{max_in_flight_requests_per_connection}} delivery.timeout.ms={{producer_delivery_timeout_ms}} --deterministic --payload-file {{producer_test_data}} --print-metrics > {{producer_output}}&"
+      shell: "export JMX_PORT={{producer_jmx_port}}; {{custom_producer_path}} --producer.config {{command_config}} --throughput {{producer_throughput}} --num-records {{producer_num_records}} --topic {{topic}} --producer-props {{producer_props}} --record-size {{record_size}} --print-metrics > {{producer_output}}&"
       async: 10
       poll: 9
       tags: 'run_producer'

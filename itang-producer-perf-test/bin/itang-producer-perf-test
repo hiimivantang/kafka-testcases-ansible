@@ -170,6 +170,17 @@ if [ "$cygwin" = "true" -o "$msys" = "true" ] ; then
     esac
 fi
 
+# JMX settings
+if [ -z "$KAFKA_JMX_OPTS" ]; then
+      KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false "
+fi
+
+# JMX port to use
+if [  $JMX_PORT ]; then
+      KAFKA_JMX_OPTS="$KAFKA_JMX_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT "
+fi
+
+
 # Escape application args
 save () {
     for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; done
@@ -178,6 +189,6 @@ save () {
 APP_ARGS=`save "$@"`
 
 # Collect all arguments for the java command, following the shell quoting and substitution rules
-eval set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $ITANG_PRODUCER_PERF_TEST_OPTS -classpath "\"$CLASSPATH\"" $KAFKA_OPTS clients.ProducerPerformance "$APP_ARGS"
+eval set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $ITANG_PRODUCER_PERF_TEST_OPTS $KAFKA_JMX_OPTS -classpath "\"$CLASSPATH\"" $KAFKA_OPTS clients.ProducerPerformance "$APP_ARGS"
 
 exec "$JAVACMD" "$@"
