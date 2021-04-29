@@ -1,0 +1,38 @@
+---
+- name: Simulating latency
+  hosts: all
+  vars:
+    latency_ms: 20
+    jitter_ms: 2
+    packet_loss_percent: 1
+    network_interface: eth0
+    remove_qdisc: false
+  tasks:
+    - name: Install tc
+      yum:
+        name: tc
+        state: present
+      become: true
+
+    - name: Introducing latency to {{target_subnet}}
+      shell: '{{item}}'
+      #debug:
+      #  msg: '{{item}}'
+      with_items:
+      - "/usr/sbin/tc qdisc add dev {{network_interface}} root handle 1: prio > /dev/null"
+      - "/usr/sbin/tc qdisc add dev {{network_interface}} parent 1:1 handle 10: sfq > /dev/null"
+      - "/usr/sbin/tc qdisc add dev {{network_interface}} parent 1:2 handle 20: sfq > /dev/null"
+      - "/usr/sbin/tc qdisc add dev {{network_interface}} parent 1:3 handle 30: netem delay {{latency_ms}}ms {{jitter_ms}}ms 20.00 > /dev/null"
+      become: true
+      when: not remove_qdisc
+
+    - name:
+      shell: "/usr/sbin/tc filter add dev {{network_interface}} protocol ip parent 1:0 prio 1 u32 match ip dst {{item}} flowid 1:3 > /dev/null"
+      with_items: "{{subnets}}"
+      become: true
+      when: not remove_qdisc
+
+
+    - name: Remove all latency and packet loss
+      shell: 'sudo tc qdisc del dev {{network_interface}} root'
+      when: remove_qdisc
