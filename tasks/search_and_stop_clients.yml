@@ -1,6 +1,6 @@
 ---
 - name: get pid for producer
-  shell: "/usr/sbin/ss -tp state listening sport = :{{producer_jolokia_port}} | grep -oP 'pid=\\K[\\d]+'"
+  shell: "/usr/sbin/ss -tp state listening sport = :{{producer_jmx_port}} | grep -oP 'pid=\\K[\\d]+'"
   register: producer_pid
   ignore_errors: true
 
@@ -16,7 +16,7 @@
     pid: "{{producer_pid.stdout}}"
 
 - name: get pid for consumer
-  shell: "/usr/sbin/ss -tp state listening sport = :{{consumer_jolokia_port}} | grep -oP 'pid=\\K[\\d]+'"
+  shell: "/usr/sbin/ss -tp state listening sport = :{{consumer_jmx_port}} | grep -oP 'pid=\\K[\\d]+'"
   register: consumer_pid
   ignore_errors: true
 
